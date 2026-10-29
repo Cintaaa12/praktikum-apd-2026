@@ -1,0 +1,252 @@
+users = [
+    ["admincamping", "cinta", "admin"],
+]
+
+inventory = [
+    ["A01", "Tenda Dome (4 Orang)", 10, 50000],
+    ["A02", "Sleeping Bag Polar", 25, 15000],
+    ["A03", "Kompor Portable Mini", 15, 20000],
+    ["A04", "Nesting / Cooking Set", 20, 10000],
+    ["A05", "Headlamp / Senter Kepala", 30, 8000]
+]
+
+def main_menu():
+    while True:
+        clear_screen()
+        print("=" * 45)
+        print("  SISTEM PERSEWAAN & INVENTARIS ALAT CAMPING  ")
+        print("=" * 45)
+        print("1. Login")
+        print("2. Register (Pengguna Baru)")
+        print("3. Keluar Program")
+        print("-" * 45)
+        
+        pilihan = input("Pilih menu (1-3): ")
+        
+        if pilihan == "1":
+            login()
+        elif pilihan == "2":
+            register()
+        elif pilihan == "3":
+            print("\nTerima kasih telah menggunakan sistem ini!")
+            break
+        else:
+            input("\nPilihan tidak valid! Tekan Enter untuk mengulang...")
+
+def register():
+    clear_screen()
+    print("=== REGISTRASI AKUN BARU ===")
+    username = input("Masukkan username baru: ")
+    
+    username_ada = False
+    for u in users:
+        if u[0] == username:
+            username_ada = True
+            break
+            
+    if username_ada:
+        input("\n[Gagal] Username sudah digunakan! Tekan Enter...")
+        return
+        
+    password = input("Masukkan password: ")
+    if username == "" or password == "":
+        input("\n[Gagal] Username dan password tidak boleh kosong! Tekan Enter...")
+        return
+        
+    users.append([username, password, "user"])
+    input("\n[Sukses] Registrasi berhasil! Silakan login. Tekan Enter...")
+
+def login():
+    clear_screen()
+    print("=== LOGIN SISTEM ===")
+    username = input("Username: ")
+    password = input("Password: ")
+    
+    login_berhasil = False
+    role_user = ""
+    
+    for u in users:
+        if u[0] == username and u[1] == password:
+            login_berhasil = True
+            role_user = u[2]
+            break
+            
+    if login_berhasil:
+        input(f"\n[Sukses] Login berhasil sebagai {role_user.upper()}! Tekan Enter...")
+        if role_user == "admin":
+            admin_menu()
+        else:
+            user_menu(username)
+    else:
+        input("\n[Gagal] Username atau password salah! Tekan Enter...")
+
+def admin_menu():
+    while True:
+        clear_screen()
+        print("=" * 45)
+        print("           MENU UTAMA - ADMIN               ")
+        print("=" * 45)
+        print("1. Lihat Daftar Inventaris (Read)")
+        print("2. Tambah Alat Baru (Create)")
+        print("3. Ubah Data Alat (Update)")
+        print("4. Hapus Alat (Delete)")
+        print("5. Logout")
+        print("-" * 45)
+        
+        pilihan = input("Pilih menu (1-5): ")
+        
+        if pilihan == "1":
+            tampilkan_inventaris()
+            input("\nTekan Enter untuk kembali ke menu...")
+        elif pilihan == "2":
+            tambah_alat()
+        elif pilihan == "3":
+            ubah_alat()
+        elif pilihan == "4":
+            hapus_alat()
+        elif pilihan == "5":
+            break
+        else:
+            input("\nPilihan tidak valid! Tekan Enter...")
+
+def tampilkan_inventaris():
+    clear_screen()
+    print("=" * 65)
+    print(f"{'ID':<6} | {'NAMA ALAT':<25} | {'STOK':<6} | {'HARGA/HARI':<12}")
+    print("=" * 65)
+    if len(inventory) == 0:
+        print("Inventaris kosong.")
+    else:
+        for item in inventory:
+            print(f"{item[0]:<6} | {item[1]:<25} | {item[2]:<6} | Rp{item[3]:<10}")
+    print("=" * 65)
+
+def tambah_alat():
+    clear_screen()
+    print("=== TAMBAH ALAT CAMPING BARU (CREATE) ===")
+    id_alat = input("Masukkan ID Alat (contoh: A06): ")
+    
+    id_ada = False
+    for item in inventory:
+        if item[0] == id_alat:
+            id_ada = True
+            break
+            
+    if id_ada:
+        input("\n[Gagal] ID Alat sudah terdaftar! Tekan Enter...")
+        return
+        
+    nama_alat = input("Masukkan Nama Alat: ")
+    if nama_alat == "":
+        input("\n[Gagal] Nama alat tidak boleh kosong! Tekan Enter...")
+        return
+        
+    stok_str = input("Masukkan Jumlah Stok: ")
+    if not stok_str.isdigit():
+        input("\n[Gagal] Stok harus berupa angka bulat! Tekan Enter...")
+        return
+    stok = int(stok_str)
+    
+    harga_str = input("Masukkan Harga Sewa per Hari: ")
+    if not harga_str.isdigit():
+        input("\n[Gagal] Harga harus berupa angka! Tekan Enter...")
+        return
+    harga = int(harga_str)
+    
+    inventory.append([id_alat, nama_alat, stok, harga])
+    input("\n[Sukses] Alat baru berhasil ditambahkan! Tekan Enter...")
+
+def ubah_alat():
+    tampilkan_inventaris()
+    print("\n=== UBAH DATA ALAT (UPDATE) ===")
+    id_cari = input("Masukkan ID Alat yang ingin diubah: ")
+    
+    ditemukan = False
+    for item in inventory:
+        if item[0] == id_cari:
+            ditemukan = True
+            print(f"Data saat ini -> Nama: {item[1]} | Stok: {item[2]} | Harga: {item[3]}")
+            print("(Tekan Enter jika tidak ingin mengubah suatu kolom)\n")
+            
+            nama_baru = input("Nama alat baru: ")
+            if nama_baru != "":
+                item[1] = nama_baru
+                
+            stok_baru = input("Stok baru: ")
+            if stok_baru != "":
+                if stok_baru.isdigit():
+                    item[2] = int(stok_baru)
+                else:
+                    print("[Peringatan] Stok bukan angka valid, perubahan stok dibatalkan.")
+                    
+            harga_baru = input("Harga baru: ")
+            if harga_baru != "":
+                if harga_baru.isdigit():
+                    item[3] = int(harga_baru)
+                else:
+                    print("[Peringatan] Harga bukan angka valid, perubahan harga dibatalkan.")
+            
+            input("\n[Sukses] Data alat berhasil diperbarui! Tekan Enter...")
+            break
+            
+    if not ditemukan:
+        input("\n[Gagal] ID Alat tidak ditemukan! Tekan Enter...")
+
+def hapus_alat():
+    tampilkan_inventaris()
+    print("\n=== HAPUS ALAT (DELETE) ===")
+    id_cari = input("Masukkan ID Alat yang ingin dihapus: ")
+    
+    ditemukan = False
+    for i in range(len(inventory)):
+        if inventory[i][0] == id_cari:
+            ditemukan = True
+            del inventory[i]
+            input("\n[Sukses] Alat berhasil dihapus dari inventaris! Tekan Enter...")
+            break
+            
+    if not ditemukan:
+        input("\n[Gagal] ID Alat tidak ditemukan! Tekan Enter...")
+
+def user_menu(username):
+    while True:
+        clear_screen()
+        print("=" * 45)
+        print(f"     MENU UTAMA - PENGGUNA ({username.upper()})     ")
+        print("=" * 45)
+        print("1. Lihat Daftar Alat Camping (Read)")
+        print("2. Simulasi Sewa Alat")
+        print("3. Logout")
+        print("-" * 45)
+        
+        pilihan = input("Pilih menu (1-3): ")
+        
+        if pilihan == "1":
+            tampilkan_inventaris()
+            input("\nTekan Enter untuk kembali...")
+        elif pilihan == "2":
+            tampilkan_inventaris()
+            print("\n=== SIMULASI SEWA ALAT ===")
+            id_alat = input("Masukkan ID alat yang ingin disewa: ")
+            
+            ditemukan = False
+            for item in inventory:
+                if item[0] == id_alat:
+                    ditemukan = True
+                    durasi_str = input("Masukkan durasi penyewaan (hari): ")
+                    if durasi_str.isdigit():
+                        durasi = int(durasi_str)
+                        total_biaya = item[3] * durasi
+                        print(f"\n[Berhasil] Anda akan menyewa {item[1]} selama {durasi} hari.")
+                        print(f"Total Biaya Sewa: Rp{total_biaya}")
+                    else:
+                        print("\n[Gagal] Durasi hari harus berupa angka!")
+                    break
+                    
+            if not ditemukan:
+                print("\n[Gagal] ID Alat tidak ditemukan.")
+            input("\nTekan Enter untuk kembali...")
+        elif pilihan == "3":
+            break
+        else:
+            input("\nPilihan tidak valid! Tekan Enter...")

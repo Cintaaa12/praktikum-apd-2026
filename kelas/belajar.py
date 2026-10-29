@@ -1,3 +1,1 @@
-print("Hai")
-
-print("Aku" + "Rajin")
+print

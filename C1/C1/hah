@@ -1,0 +1,237 @@
+import os
+
+users = [["admin", "admin123", "admin"], ["budi", "budi123", "user"]]
+alat = [
+    [2, "Sleeping Bag", "Tidur", 15000, 10],
+    [3, "Kompor Portable", "Masak", 10000, 6],
+    [4, "Carrier 60L", "Tas", 25000, 4],
+    [5, "Headlamp", "Penerangan", 5000, 8],
+]
+penyewaan = []   # [id_sewa, username, id_alat, nama_alat, jumlah, hari, total, status]
+
+# ---------- DATA TETAP (TUPLE) ----------
+KATEGORI = ("Tenda", "Tidur", "Masak", "Tas", "Penerangan", "Lainnya")
+KET_KAT = ", ".join(f"{i}={k}" for i, k in enumerate(KATEGORI, start=1))
+MENU = {
+    "tamu": ("Keluar", "Login", "Register"),
+    "admin": ("Logout", "Tambah alat (Create)", "Lihat alat (Read)", "Ubah alat (Update)",
+              "Hapus alat (Delete)", "Kelola pengguna", "Data penyewaan"),
+    "user": ("Logout", "Lihat alat", "Cari alat", "Sewa alat", "Kembalikan alat", "Riwayat sewa saya"),
+}
+KOLOM = {"alat": ("ID", "Nama Alat", "Kategori", "Harga/Hari", "Stok"),
+         "sewa": ("ID", "Penyewa", "Alat", "Jml", "Hari", "Total", "Status"),
+         "user": ("No", "Username", "Role")}
+LEBAR = {"alat": (4, 26, 12, 14, 6), "sewa": (4, 12, 22, 5, 5, 14, 13), "user": (5, 20, 10)}
+
+# Definisi form input: (label, jenis, min, maks) -> jenis: t=teks, n=angka, awalan ? = boleh kosong
+BIG = 10 ** 9
+KONFIRM = ("Yakin hapus? (1=Ya, 0=Tidak)", "n", 0, 1)
+FORM = {
+    "tamu1": (("Username", "t", 0, 0), ("Password", "t", 0, 0)),
+    "tamu2": (("Username (min 4, tanpa spasi)", "t", 0, 0), ("Password (min 6)", "t", 0, 0),
+              ("Ulangi password", "t", 0, 0)),
+    "admin1": (("Nama alat", "t", 0, 0), (f"Kategori ({KET_KAT})", "n", 1, len(KATEGORI)),
+               ("Harga sewa/hari (Rp)", "n", 1, BIG), ("Stok", "n", 0, BIG)),
+    "admin3": (("ID alat yang diubah", "n", 1, BIG), ("Nama baru [Enter=tetap]", "?t", 0, 0),
+               (f"Kategori baru [Enter=tetap] ({KET_KAT})", "?n", 1, len(KATEGORI)),
+               ("Harga baru [Enter=tetap]", "?n", 1, BIG), ("Stok baru [Enter=tetap]", "?n", 0, BIG)),
+    "admin4": (("ID alat yang dihapus", "n", 1, BIG), KONFIRM),
+    "admin5": (("Nomor pengguna yang dihapus", "n", 1, BIG), KONFIRM),
+    "user3": (("ID alat yang disewa", "n", 1, BIG), ("Jumlah", "n", 1, BIG), ("Lama sewa (1-30 hari)", "n", 1, 30)),
+    "user4": (("ID sewa yang dikembalikan", "n", 1, BIG),),
+}
+
+perintah_clear = "cls" if os.name == "nt" else "clear"   # Windows = cls, Linux/Mac = clear
+akun = None          # [username, password, role] jika sudah login
+jalan = True
+
+while jalan:
+    # ================= MENU (satu blok untuk semua peran) =================
+    os.system(perintah_clear)
+    peran = "tamu" if akun is None else akun[2]
+    menu = MENU[peran]
+    print("=" * 70)
+    print(("PERSEWAAN ALAT OUTDOOR & CAMPING" if akun is None else f"MENU {peran.upper()} - {akun[0]}").center(70))
+    print("=" * 70)
+    for i, m in enumerate(menu):
+        print(f"{i}. {m}")
+    while True:
+        isi = input("Pilih menu : ").strip()
+        if not isi.isdecimal():
+            print("[!] Input harus berupa angka bulat positif.")
+        elif int(isi) >= len(menu):
+            print("[!] Pilihan menu tidak tersedia.")
+        else:
+            pilih = int(isi)
+            break
+    if pilih == 0:                       # Keluar (tamu) / Logout (admin & user)
+        if akun is None:
+            jalan = False
+            os.system(perintah_clear)
+            print("Terima kasih telah menggunakan program ini!")
+        akun = None
+        continue
+
+    aksi = peran + str(pilih)            # contoh: "admin3", "user4"
+    os.system(perintah_clear)
+    print("=" * 70)
+    print(menu[pilih].upper().center(70))
+    print("=" * 70)
+
+    # ================= TENTUKAN TABEL YANG DITAMPILKAN =================
+    kata, tabel, data_sewa = "", None, []
+    milik = [s for s in penyewaan if akun is not None and s[1] == akun[0]]
+    if aksi == "user2":                  # cari alat: minta kata kunci dulu
+        while kata == "":
+            kata = input("Kata kunci nama/kategori : ").strip().lower()
+            if kata == "":
+                print("[!] Kata kunci tidak boleh kosong.")
+    if aksi in ("admin2", "admin3", "admin4", "user1", "user2", "user3"):
+        tabel = "alat"
+    elif aksi == "admin5":
+        tabel = "user"
+    elif aksi in ("admin6", "user4", "user5"):
+        tabel = "sewa"
+        data_sewa = penyewaan if aksi == "admin6" else milik
+        if aksi == "user4":
+            data_sewa = [s for s in milik if s[7] == "Disewa"]
+
+    # ================= CETAK TABEL (satu blok untuk semua tabel) =================
+    if tabel == "alat":
+        baris = [[a[0], a[1], a[2], "Rp" + f"{a[3]:,}".replace(",", "."), a[4]]
+                 for a in alat if kata in a[1].lower() or kata in a[2].lower()]
+    elif tabel == "sewa":
+        baris = [[s[0], s[1], s[3], s[4], s[5], "Rp" + f"{s[6]:,}".replace(",", "."), s[7]] for s in data_sewa]
+    elif tabel == "user":
+        baris = [[i, u[0], u[2]] for i, u in enumerate(users, start=1)]
+    if tabel is not None:
+        print("".join(k.ljust(w) for k, w in zip(KOLOM[tabel], LEBAR[tabel])))
+        print("-" * sum(LEBAR[tabel]))
+        if len(baris) == 0:
+            print("(Data kosong)")
+        for b in baris:
+            print("".join(str(x)[:w - 2].ljust(w) for x, w in zip(b, LEBAR[tabel])))
+        print()
+
+    # ================= FORM INPUT (satu blok validasi untuk semua input) =================
+    form = FORM.get(aksi, ())
+    if aksi == "user4" and len(data_sewa) == 0:
+        form = ()
+    jawab = []
+    for label, jenis, lo, hi in form:
+        while True:
+            isi = input(label + " : ").strip()
+            if isi == "" and jenis[0] == "?":        # boleh kosong -> tidak diubah
+                jawab.append(None)
+                break
+            if isi == "":
+                print("[!] Input tidak boleh kosong.")
+                continue
+            if jenis[-1] == "n":
+                if not isi.isdecimal():
+                    print("[!] Input harus berupa angka bulat positif.")
+                    continue
+                if int(isi) < lo or int(isi) > hi:
+                    print(f"[!] Nilai harus antara {lo} sampai {hi}.")
+                    continue
+                isi = int(isi)
+            jawab.append(isi)
+            break
+
+    # ================= PROSES (Create, Read, Update, Delete) =================
+    print()
+    if aksi == "tamu1":                                                   # LOGIN
+        akun = next((u for u in users if u[0].lower() == jawab[0].lower() and u[1] == jawab[1]), None)
+        print("[✓] Login berhasil!" if akun else "[!] Username atau password salah.")
+
+    elif aksi == "tamu2":                                                 # REGISTER
+        if len(jawab[0]) < 4 or " " in jawab[0]:
+            print("[!] Username minimal 4 karakter dan tidak boleh berspasi.")
+        elif any(u[0].lower() == jawab[0].lower() for u in users):
+            print("[!] Username sudah digunakan.")
+        elif len(jawab[1]) < 6:
+            print("[!] Password minimal 6 karakter.")
+        elif jawab[1] != jawab[2]:
+            print("[!] Password dan ulangi password tidak cocok.")
+        else:
+            users.append([jawab[0], jawab[1], "user"])
+            print("[✓] Registrasi berhasil! Silakan login.")
+
+    elif aksi == "admin1":                                                # CREATE
+        if any(a[1].lower() == jawab[0].lower() for a in alat):
+            print("[!] Nama alat sudah ada.")
+        else:
+            id_baru = max([a[0] for a in alat], default=0) + 1
+            alat.append([id_baru, jawab[0], KATEGORI[jawab[1] - 1], jawab[2], jawab[3]])
+            print("[✓] Alat berhasil ditambahkan.")
+
+    elif aksi == "admin3":                                                # UPDATE
+        item = next((a for a in alat if a[0] == jawab[0]), None)
+        if item is None:
+            print("[!] Alat dengan ID tersebut tidak ditemukan.")
+        elif jawab[1] is not None and any(a is not item and a[1].lower() == jawab[1].lower() for a in alat):
+            print("[!] Nama alat sudah dipakai alat lain.")
+        else:
+            for i in range(1, 5):
+                if jawab[i] is not None:
+                    item[i] = KATEGORI[jawab[i] - 1] if i == 2 else jawab[i]
+            print("[✓] Data alat berhasil diperbarui.")
+
+    elif aksi == "admin4":                                                # DELETE
+        item = next((a for a in alat if a[0] == jawab[0]), None)
+        if item is None:
+            print("[!] Alat dengan ID tersebut tidak ditemukan.")
+        elif any(s[2] == item[0] and s[7] == "Disewa" for s in penyewaan):
+            print("[!] Alat sedang disewa, tidak dapat dihapus.")
+        elif jawab[1] == 1:
+            alat.remove(item)
+            print("[✓] Alat berhasil dihapus.")
+        else:
+            print("Penghapusan dibatalkan.")
+
+    elif aksi == "admin5":                                                # HAPUS PENGGUNA
+        if jawab[0] > len(users):
+            print("[!] Nomor pengguna tidak ditemukan.")
+        else:
+            u = users[jawab[0] - 1]
+            if u[2] == "admin":
+                print("[!] Akun admin tidak dapat dihapus.")
+            elif any(s[1] == u[0] and s[7] == "Disewa" for s in penyewaan):
+                print("[!] Pengguna masih memiliki sewa aktif.")
+            elif jawab[1] == 1:
+                users.remove(u)
+                print("[✓] Pengguna berhasil dihapus.")
+            else:
+                print("Penghapusan dibatalkan.")
+
+    elif aksi == "admin6":                                                # TOTAL PENDAPATAN
+        print("Total pendapatan sewa : Rp" + f"{sum(s[6] for s in penyewaan):,}".replace(",", "."))
+
+    elif aksi == "user3":                                                 # SEWA
+        item = next((a for a in alat if a[0] == jawab[0]), None)
+        if item is None:
+            print("[!] Alat tidak ditemukan.")
+        elif item[4] == 0:
+            print("[!] Stok alat habis.")
+        elif jawab[1] > item[4]:
+            print(f"[!] Jumlah melebihi stok (tersedia {item[4]}).")
+        else:
+            total = item[3] * jawab[1] * jawab[2]
+            id_sewa = max([s[0] for s in penyewaan], default=0) + 1
+            penyewaan.append([id_sewa, akun[0], item[0], item[1], jawab[1], jawab[2], total, "Disewa"])
+            item[4] -= jawab[1]
+            print(f"[✓] Berhasil menyewa {jawab[1]} x {item[1]} selama {jawab[2]} hari.")
+            print("    Total biaya : Rp" + f"{total:,}".replace(",", "."))
+
+    elif aksi == "user4" and len(form) > 0:                               # KEMBALIKAN
+        target = next((s for s in data_sewa if s[0] == jawab[0]), None)
+        if target is None:
+            print("[!] Anda tidak memiliki sewa aktif dengan ID tersebut.")
+        else:
+            target[7] = "Dikembalikan"
+            for a in alat:
+                if a[0] == target[2]:
+                    a[4] += target[4]
+            print("[✓] Alat berhasil dikembalikan.")
+
+    input("\nTekan Enter untuk melanjutkan...")
