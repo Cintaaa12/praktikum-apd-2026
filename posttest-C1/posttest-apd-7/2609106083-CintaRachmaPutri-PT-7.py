@@ -441,4 +441,3 @@ def main():
             input("\nTekan Enter untuk melanjutkan.")
 
 main()
-
